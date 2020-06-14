@@ -2,8 +2,6 @@ use v5.30;
 use feature 'signatures';
 no warnings 'experimental::signatures';
 
-#use Data::Dumper qw( Dumper );
-
 # 040020900000000010000006850582300700000807000009005138097100000020000000004030000
 my @board_raw = qw(
     0 4 0   0 2 0   9 0 0
