@@ -16,24 +16,29 @@ my @board_raw = qw(
     0 2 0   0 0 0   0 0 0
     0 0 4   0 3 0   0 0 0
 );
-
-my $starting_board = [ @board_raw ];
+#                   040020900000000010000006850582300700000807000009005138097100000020000000004030000
+my $board_string = "148523900000000010000006850582300700000807000009005138097100000020000000004030000";
+my $starting_board = [ split //, $board_string ]; #@board_raw ];
 
 my $GLOBAL_MAX_CORRECT = 0;
 my $GLOBAL_ITERATIONS_COUNT = 0;
 
-sub start_solve ( $board_ref, $index, $correct_count ) {
-    if ( ++$GLOBAL_ITERATIONS_COUNT % 50000 == 0 ) {
-        say "${GLOBAL_ITERATIONS_COUNT} iterations checked.";
-    }
+my $missing_cells = () = $board_string =~ /0/g;
+printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 - $missing_cells, $missing_cells;
 
-    if ( $correct_count > $GLOBAL_MAX_CORRECT ) {
-        say "New global max correct hit, new value: ${correct_count}";
-        $GLOBAL_MAX_CORRECT = $correct_count;
-    }
-    # They're all correct? Sweet!
+# print_info_for_index( $starting_board, 0 ); exit;
+
+sub start_solve ( $board_ref, $index, $correct_count ) {
+    # printf "start_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
+    say "${GLOBAL_ITERATIONS_COUNT} iterations checked."
+        if ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0;
+    ($GLOBAL_MAX_CORRECT = $correct_count) and 
+       say "New global max correct hit, new value: ${correct_count}"
+           if $correct_count > $GLOBAL_MAX_CORRECT;
+
     if ( $correct_count == 81 ) {
         say "Woot, solved!";
+        printf "It took %d iterations to solve.\n", $GLOBAL_ITERATIONS_COUNT;
         return ( $board_ref, $index, $correct_count );
     }
     # &shrug;
@@ -48,6 +53,7 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
         return start_solve($board_ref, get_random_empty_index($$board_ref), $correct_count + 1);
     } else {
         my %possible_values = get_possible_values($$board_ref, $index);
+        # printf "Possible values for %d are: %s\n", $index, join(',', keys %possible_values);
         for my $try_value ( keys %possible_values ) {
             # printf "Attempting to fill index %d (%d correct so far) with: %d\n", $index,$correct_count,$try_value;
             # printf "\tSetting to value %d\n", $try_value;
@@ -60,19 +66,20 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
             }
         }
     }
-    say "Got to the bottom of the func";
-return ();
+    # This is the fucking problem, for sure.
+    return ();
     # return ($board_ref, get_random_empty_index($$board_ref), $correct_count );
 }
 
 start_solve(\$starting_board, get_random_empty_index($starting_board),0);
 
-
 exit;
 
 sub get_random_empty_index ( $board ) {
     my @indexes = get_empty_indexes($board);
-    return $indexes[ int(rand() * scalar(@indexes)) ];
+    my $index = int(rand() * scalar(@indexes));
+
+    return $indexes[ $index ];
 }
 
 sub get_empty_indexes ( $board ) {
@@ -125,9 +132,9 @@ sub is_square_done ( $board, $idx ) {
 #       1: list of values not used in the row/column/square associated with dix
 sub get_possible_values ( $board, $index_to_check ) {
     my %seen = (
-        map { $_ => 1 } get_values_in_column($board,$index_to_check),
-                        get_values_in_row($board,$index_to_check),
-                        get_values_in_square($board,$index_to_check)
+        get_values_in_column($board,$index_to_check),
+        get_values_in_row($board,$index_to_check),
+        get_values_in_square($board,$index_to_check)
     );
 
     return ( map { $_ => 1 } grep { not exists $seen{$_} } 1..9 );
