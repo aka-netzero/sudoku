@@ -2,7 +2,14 @@ use v5.30;
 use feature 'signatures';
 no warnings 'experimental::signatures';
 
+use Getopt::Long;
+
 # 040020900000000010000006850582300700000807000009005138097100000020000000004030000
+# One complete solution v
+# 148523967256789314973416852582391746431867529769245138697154283325678491814932675
+# Broken by removing                                   vvvvvv 2803 vvvvv
+# 040020900000000010000006850582300700000867000009005138097150280325670001814930000
+# 148523967256789314973416852582391746431867529769245138697154283325678491814932675
 my @board_raw = qw(
     0 4 0   0 2 0   9 0 0
     0 0 0   0 0 0   0 1 0
@@ -17,16 +24,21 @@ my @board_raw = qw(
     0 0 4   0 3 0   0 0 0
 );
 #                   040020900000000010000006850582300700000807000009005138097100000020000000004030000
-my $board_string = "148523900000000010000006850582300700000807000009005138097100000020000000004030000";
-my $starting_board = [ split //, $board_string ]; #@board_raw ];
-
-my $GLOBAL_MAX_CORRECT = 0;
+my $GLOBAL_MAX_CORRECT      = 0;
 my $GLOBAL_ITERATIONS_COUNT = 0;
 
-my $missing_cells = () = $board_string =~ /0/g;
-printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 - $missing_cells, $missing_cells;
+GetOptions(
+    'pos=s'   => \(my $POSITION_ALGORITHM = 'lowest_options'),
+    'board=s' => \(my $BOARD_STRING = "148523900000000010000006850582300700000807000009005138097100000020000000004030000"),
+);
 
-# print_info_for_index( $starting_board, 0 ); exit;
+my $board_string = $BOARD_STRING;
+my $starting_board = [ split //, $board_string ];
+my $MISSING_CELLS = () = $board_string =~ /0/g;
+my $WINNING_COUNT =
+    $POSITION_ALGORITHM eq 'lowest_options' || $POSITION_ALGORITHM eq 'random_empty' ? $MISSING_CELLS - 1 : 81;
+
+printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 - $MISSING_CELLS, $MISSING_CELLS;
 
 sub start_solve ( $board_ref, $index, $correct_count ) {
     # printf "start_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
@@ -36,7 +48,7 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
        say "New global max correct hit, new value: ${correct_count}"
            if $correct_count > $GLOBAL_MAX_CORRECT;
 
-    if ( $correct_count == 81 ) {
+    if ( $correct_count == $WINNING_COUNT ) {
         say "Woot, solved!";
         printf "It took %d iterations to solve.\n", $GLOBAL_ITERATIONS_COUNT;
         return ( $board_ref, $index, $correct_count );
@@ -50,7 +62,7 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
     # If the current index is already filled in, we assume it's correct and move on
     if ( ${ $board_ref }->[$index] != 0 ) {
         # printf "Index %d already has a non-zero value (%d). Moving onto next index.\n", $index, ${ $board_ref }->[$index];
-        return start_solve($board_ref, get_random_empty_index($$board_ref), $correct_count + 1);
+        return start_solve($board_ref, next_position($$board_ref), $correct_count + 1);
     } else {
         my %possible_values = get_possible_values($$board_ref, $index);
         # printf "Possible values for %d are: %s\n", $index, join(',', keys %possible_values);
@@ -60,8 +72,8 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
             my $new_board = [ @{$$board_ref} ];
             $new_board->[$index] = $try_value;
 
-            my ($new_ref,undef,$cc) = start_solve(\$new_board,get_random_empty_index($new_board),$correct_count+1);
-            if ( $cc == 81 ) {
+            my ($new_ref,undef,$cc) = start_solve(\$new_board,next_position($new_board),$correct_count+1);
+            if ( $cc == $WINNING_COUNT ) {
                 return ($new_ref,80,$cc);
             }
         }
@@ -74,6 +86,53 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
 start_solve(\$starting_board, get_random_empty_index($starting_board),0);
 
 exit;
+
+sub next_position ( $board ) {
+    my $pos_algo = $POSITION_ALGORITHM;
+
+    if ( $pos_algo eq 'random' ) {
+        return int(rand() * 81);
+    } elsif ( $pos_algo eq 'random_empty' ) {
+        my @indexes = get_empty_indexes($board);
+        my $index = int(rand() * scalar(@indexes));
+
+        return $indexes[ $index ];
+    } elsif ( $pos_algo eq 'lowest_options') {
+        # TODO
+        my @all_indexes_with_no_values = get_empty_indexes($board);
+        my %indexes_by_number_of_options;
+
+        for my $idx ( @all_indexes_with_no_values ) {
+            my $number_of_options = scalar(get_possible_values($board,$idx));
+            push @{ $indexes_by_number_of_options{$number_of_options} }, $idx;
+        }
+
+        my ($lowest_options,$number_of_indexes,$random_index);
+        eval {
+            $lowest_options    = (sort { $b <=> $a } keys %indexes_by_number_of_options)[-1];
+            $number_of_indexes = scalar(@{$indexes_by_number_of_options{$lowest_options}});
+            $random_index      = int(rand() * $number_of_indexes);
+            1;
+        } or do {
+            say @!;
+            say "Failed trying to find a new position for the following board:";
+            print_board($board);
+            printf "Variables in eval look like:\n\tindexes_by_number_of_options => \n\t\t%s\n\tlowest_options => %s\n\tnumber_of_indexes => %d\n\trandom_index => %d\n",
+                join("\n\t\t",
+                    map {
+                        sprintf '%s => %s', $_, join(',', @{ $indexes_by_number_of_options{$_} })
+                    } sort { $b <=> $a } keys %indexes_by_number_of_options
+                ),
+                $lowest_options,
+                $number_of_indexes,
+                $random_index;
+
+            die;
+        };
+
+        return $indexes_by_number_of_options{$lowest_options}->[$random_index];
+    }
+}
 
 sub get_random_empty_index ( $board ) {
     my @indexes = get_empty_indexes($board);
@@ -140,7 +199,7 @@ sub get_possible_values ( $board, $index_to_check ) {
     return ( map { $_ => 1 } grep { not exists $seen{$_} } 1..9 );
 }
 
-sub print_board ( $board, $highlight_index ) {
+sub print_board ( $board, $highlight_index = undef) {
     for my $index ( 0..80 ) {
         printf $highlight_index && $highlight_index == $index ? '[%s] ' : '%s ', $board->[$index] // 'NA';
         if ( $index > 0 && ($index + 1) % 3 == 0 ) {
