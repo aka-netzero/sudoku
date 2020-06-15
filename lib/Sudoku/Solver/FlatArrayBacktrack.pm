@@ -18,7 +18,7 @@ sub new ( $class, $options ) {
     my $position_algorithm = $options->{position_algorithm} // 'random';
     my $self = {
         _board => (
-            $options->{board_string} ? [ split //, $options->{board_string} ] :
+            $options->{board_string} ? convert_board_string($options->{board_string}) :
             $options->{board}        ? [ @{ $options->{board} } ] :
             undef
         ),
@@ -29,12 +29,20 @@ sub new ( $class, $options ) {
     return bless $self, __PACKAGE__;
 }
 
+sub convert_board_string ( $board_string ) {
+    return [ split //, $board_string ];
+}
+
 sub cells_to_be_filled ( $self ) {
     return ($self->{_cells_needed_to_win} //= scalar(get_empty_indexes($self->{_original_board})) );
 }
 
 sub get_board_ref ( $self ) {
     return \$self->{_board};
+}
+
+sub reset ( $self ) {
+    $self->{_board} = [ @{$self->{_original_board}} ];
 }
 
 sub solve ( $self ) {
@@ -44,17 +52,15 @@ sub solve ( $self ) {
 
     if ( $solved_board_ref && $filled_correctly ) {
         if ( $filled_correctly == $self->cells_to_be_filled ) {
-            printf "Solved the board! It took %sms and %d iterations to find a solution.\n", int( ($finished_time-$start_time) * 1000), $GLOBAL_ITERATIONS_COUNT;
-            say "Original board: ";
-            print_board($self->{_original_board},undef);
-            say "Solved board: ";
-            print_board($$solved_board_ref, undef);
+            return $GLOBAL_ITERATIONS_COUNT;
         } else {
             say "Well now that's odd isn't it? 'Solved' board looks like: ";
             print_board($$solved_board_ref, undef);
             printf "But the correct count is not 81: %s\n", $filled_correctly // 'undef';
+            return undef;
         }
     }
+    return undef;
 }
 
 sub _actually_solve ( $self, $potential_solved_board_ref, $index, $correct_count ) {
