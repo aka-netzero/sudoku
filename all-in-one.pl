@@ -159,25 +159,6 @@ sub get_empty_indexes ( $board ) {
     return grep { $board->[$_] == 0 } 0..80;
 }
 
-#  IN:
-#       1: reference to copy of sudoku board (flattened)
-#       2: index of the cell you'd like to set
-#       3: value you'd like to set into the square
-# OUT:
-#       1: 1 if the value was successfully set (ie there is no collision in the row/column/square)
-#          0 if the value was not set due to duplicate
-sub check_and_place_value_at_index ( $board_ref, $index, $value ) {
-    my %possible_values = get_possible_values( $$board_ref, $index );
-
-    if ( not exists $possible_values{$value} ) {
-        return 0;
-    } else {
-        $$board_ref->[$index] = $value;
-        return 1;
-    }
-}
-
-
 # IN:
 #       1: reference to board
 #       2: index in the grid to calculate possible values for
@@ -204,7 +185,8 @@ sub print_board ( $board, $highlight_index = undef) {
     }
 }
 
-# IN: index of cell within square
+# Only used in debugging, because why else do I need it right now?
+#  IN: index of cell within square
 # OUT:
 #       1: square is filled completely and accurate
 #       0: square is filled completely and incorrect
@@ -249,6 +231,12 @@ sub get_values_in_square ( $board, $idx ) {
     return ( map { $_ => 1 } @values );
 }
 
+
+# IN:
+#       1: board arrayref
+#       2: index of the cell to work from
+# OUT:
+#       1: hash in the form ( VALUE => 1, VALUE => 1 )
 sub get_values_in_row ( $board, $idx ) {
     my (undef, $row) = get_xy_from_flat($idx);
     my @values;
@@ -264,6 +252,11 @@ sub get_values_in_row ( $board, $idx ) {
     return ( map { $_ => 1 } @values );
 }
 
+# IN:
+#       1: board arrayref
+#       2: index of the cell to work from
+# OUT:
+#       1: hash in the form ( VALUE => 1, VALUE => 1 )
 sub get_values_in_column ( $board, $idx ) {
     my ($column,undef) = get_xy_from_flat($idx);
     my @values;
@@ -281,8 +274,8 @@ sub get_values_in_column ( $board, $idx ) {
 #  IN: 
 #       1: sudoku board
 #       2: index in flattened array
-# OUT
-#       0: can return either 0,1 or undef:
+# OUT:
+#       1: can return either 0,1 or undef:
 #           1 = the row contains 1..9 with no duplicates
 #           0 = the row contains duplicates
 #       undef = the row has empty slots
@@ -305,6 +298,14 @@ sub is_row_valid ( $board, $idx ) {
 
 }
 
+#  IN:
+#       1: sudoku board
+#       2: index in flattened array
+# OUT:
+#       1: can return either 0,1 or undef:
+#           1 = the column contains 1..9 with no duplicates
+#           0 = the column contains duplicates
+#       undef = the column has empty slots
 sub is_column_valid ( $board, $idx ) { 
     my ( $column, undef ) = get_xy_from_flat($idx);
     my %seen;
@@ -323,22 +324,33 @@ sub is_column_valid ( $board, $idx ) {
     return 1;
 }
 
-
+#  IN:
+#       1: index in flattened array
+# OUT:
+#       1: list with the equivalent x,y coord
 sub get_xy_from_flat ( $index ) {
     return ($index % 9, int($index / 9) );
 }
 
+#  IN:
+#       1: x
+#       2: y
+# OUT:
+#       1: index in the flattened array
 sub get_flat_from_xy( $x,$y ) {
     return ( $y * 9 + $x );
 }
 
-#  IN: index on the flattened board
-# OUT: 0 based index indicating the square
-#      that point resides in
+#  IN: 
+#       1: index on the flattened board
+# OUT:
+#       1: zero based index indicating the square
+#          that point resides in
 sub get_square_from_flat ( $idx ) {
     return int( int( $idx / 27 ) * 3 + ( $idx % 9 / 3 ) );
 }
 
+# Test sub
 sub testing {
     while(1) {
         print "Enter index in the flattened array: ";
@@ -350,6 +362,7 @@ sub testing {
     }
 }
 
+# Also a debugging sub
 sub print_info_for_index ( $board, $index ) {
         my ($x,$y,$square);
 
@@ -372,10 +385,6 @@ sub print_info_for_index ( $board, $index ) {
         printf "Making these values still available: %s\n",
             join(',', sort keys %values );
 }
-
-
-exit;
-
 
 __END__
    flat, printed as two-d                       two-d
