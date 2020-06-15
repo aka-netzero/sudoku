@@ -3,6 +3,7 @@ use feature 'signatures';
 no warnings 'experimental::signatures';
 
 use Getopt::Long;
+use Time::HiRes qw(time);
 
 # 040020900000000010000006850582300700000807000009005138097100000020000000004030000
 # One complete solution v
@@ -80,12 +81,22 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
             }
         }
     }
-    # This is the fucking problem, for sure.
-    return ();
-    # return ($board_ref, get_random_empty_index($$board_ref), $correct_count );
-}
 
-start_solve(\$starting_board, get_random_empty_index($starting_board),0);
+    return ();
+}
+my $START_TIME = time;
+my ($solving_board,undef,undef) = start_solve(\$starting_board, get_random_empty_index($starting_board),0);
+my $FINISH_TIME = time;
+
+say '=' x 80;
+printf "If the puzzle is solved then it took %sms to finish, and a total of %d iterations to solve.", int( ($FINISH_TIME - $START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
+say "The original board was:";
+print_board($starting_board);
+say '=' x 80;
+say "The solved board is:";
+print_board($$solving_board);
+printf "\tSquare %d is %svalid\n", $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
+say '=' x 80;
 
 exit;
 
@@ -100,7 +111,6 @@ sub next_position ( $board ) {
 
         return $indexes[ $index ];
     } elsif ( $pos_algo eq 'lowest_options') {
-        # TODO
         my @all_indexes_with_no_values = get_empty_indexes($board);
         my %indexes_by_number_of_options;
 
@@ -165,26 +175,6 @@ sub check_and_place_value_at_index ( $board_ref, $index, $value ) {
     }
 }
 
-# IN: index of cell within square
-# OUT:
-#       1: square is filled completely and accurate
-#       0: square is filled completely and incorrect
-#           (?) ^ Not sure this is possible
-#   undef: square is incomplete
-sub is_square_done ( $board, $idx ) {
-    my @used_values = get_values_in_square($board,$idx);
-    my %used_values = map {
-        $_ => 1
-    } @used_values;
-
-    if ( scalar( grep { exists $used_values{$_} } 1..9 ) == 9 ) {
-        return 1;
-    } elsif ( @used_values == 9 ) {
-        return 0;
-    } else {
-        return undef;
-    }
-}
 
 # IN:
 #       1: reference to board
@@ -212,9 +202,38 @@ sub print_board ( $board, $highlight_index = undef) {
     }
 }
 
+# IN: index of cell within square
+# OUT:
+#       1: square is filled completely and accurate
+#       0: square is filled completely and incorrect
+#           (?) ^ Not sure this is possible
+#   undef: square is incomplete
+sub is_square_valid ( $board, $square_index ) {
+    my @used_values = get_values_in_square($board, get_first_index_in_square($square_index));
+    my %used_values = map {
+        $_ => 1
+    } @used_values;
+
+    if ( scalar( grep { exists $used_values{$_} } 1..9 ) == 9 ) {
+        return 1;
+    } elsif ( @used_values == 9 ) {
+        return 0;
+    } else {
+        return undef;
+    }
+}
+
+#  IN:
+#       1: Index of the square from 0-8
+# OUT:
+#       1: Index of the first cell of the square in the board
+sub get_first_index_in_square ( $square_index ) {
+    return ( 3 * ( $square_index % 3 ) ) + ( int($square_index / 3) * 27 );
+}
+
 sub get_values_in_square ( $board, $idx ) {
     my $square_index = get_square_from_flat($idx);
-    my $start_index  = ( 3 * ( $square_index % 3 ) ) + ( int($square_index / 3) * 27 );
+    my $start_index  = get_first_index_in_square($square_index);
     my @values;
 
     for my $i ( 0..8 ) {
