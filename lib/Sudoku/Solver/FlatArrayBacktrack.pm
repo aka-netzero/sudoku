@@ -19,7 +19,7 @@ sub new ( $class, $options ) {
     my $self = {
         _board => (
             $options->{board_string} ? [ split //, $options->{board_string} ] :
-            $options->{board} ? [ @{ $options->{board} } ] :
+            $options->{board}        ? [ @{ $options->{board} } ] :
             undef
         ),
         _position_algorithm => POSITION_ALGORITHMS->{$position_algorithm} // 'random',
@@ -113,15 +113,10 @@ sub next_position ( $self, $board ) {
             my $number_of_options = scalar(get_possible_values($board,$idx));
             push @{ $indexes_by_number_of_options{$number_of_options} }, $idx;
         }
-        my $lowest_options = (sort { $b <=> $a } keys %indexes_by_number_of_options)[-1];
+        my $lowest_options    = (sort { $b <=> $a } keys %indexes_by_number_of_options)[-1];
         my $number_of_indexes = scalar(@{$indexes_by_number_of_options{$lowest_options}});
-        my $random_index = int(rand() * $number_of_indexes);
+        my $random_index      = int(rand() * $number_of_indexes);
 
-        printf "Picking random index with lowest number of options, looked like: (# options => # of indexes):\n\t%s\n, index within %d (considered the lowest number of possibilities) selected is %d, with board index %d\n",
-            join("\n\t", map { sprintf "%d => %d", $_, scalar(@{$indexes_by_number_of_options{$_}}) } sort { $b <=> $a } keys %indexes_by_number_of_options),
-            $lowest_options,
-            $random_index,
-            $indexes_by_number_of_options{$lowest_options}->[$random_index];
         return $indexes_by_number_of_options{$lowest_options}->[$random_index];
     }
 }
