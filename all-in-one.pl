@@ -60,7 +60,7 @@ if ( $DEBUG ) {
         printf "\tSquare %d is %svalid\tColumn %d is %svalid\tRow %d is %svalid\n",
             $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not '),
             $_, (is_column_valid($$solving_board,$_) == 1 ? '' : 'not '),
-            $_, (is_row_valid($$solving_board,$_) == 1 ? '' : 'not ');
+            $_, (   is_row_valid($$solving_board,$_) == 1 ? '' : 'not ');
     }
 
     my @empty_indexes = get_empty_indexes($$solving_board);
