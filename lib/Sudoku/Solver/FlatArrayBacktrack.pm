@@ -22,11 +22,15 @@ sub new ( $class, $options ) {
             $options->{board}        ? [ @{ $options->{board} } ] :
             undef
         ),
-        _position_algorithm => POSITION_ALGORITHMS->{$position_algorithm} // 'random',
+        _position_algorithm => POSITION_ALGORITHMS->{$position_algorithm} // 'lowest_options',
     };
     $self->{_original_board} = [ @{ $self->{_board} } ];
 
     return bless $self, __PACKAGE__;
+}
+
+sub cells_to_be_filled ( $self ) {
+    return ($self->{_cells_needed_to_win} //= scalar(get_empty_indexes($self->{_original_board})) );
 }
 
 sub get_board_ref ( $self ) {
@@ -39,8 +43,8 @@ sub solve ( $self ) {
     my $finished_time = time;
 
     if ( $solved_board_ref && $filled_correctly ) {
-        if ( $filled_correctly == 81 ) {
-            printf "Solved the board! It took %ss and %d iterations to find a solution.\n", ($finished_time-$start_time), $GLOBAL_ITERATIONS_COUNT;
+        if ( $filled_correctly == $self->cells_to_be_filled ) {
+            printf "Solved the board! It took %sms and %d iterations to find a solution.\n", int( ($finished_time-$start_time) * 1000), $GLOBAL_ITERATIONS_COUNT;
             say "Original board: ";
             print_board($self->{_original_board},undef);
             say "Solved board: ";
@@ -54,39 +58,44 @@ sub solve ( $self ) {
 }
 
 sub _actually_solve ( $self, $potential_solved_board_ref, $index, $correct_count ) {
-    # printf "_actually_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
-    say "${GLOBAL_ITERATIONS_COUNT} iterations checked."
-        if ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0;
-    if ( $GLOBAL_ITERATIONS_COUNT > 900_000 && $correct_count > $GLOBAL_MAX_CORRECT ) {
-        $GLOBAL_MAX_CORRECT = $correct_count;
-        say "New global max correct hit at iteration ${GLOBAL_ITERATIONS_COUNT}, new value: ${correct_count}";
+    my $NEEDED_TO_WIN = $self->cells_to_be_filled;
+    # printf "start_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
+    if ( ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0 ) {
+        say "${GLOBAL_ITERATIONS_COUNT} iterations checked.";
     }
 
-    if ( $correct_count == 81 ) {
+    if ( $GLOBAL_ITERATIONS_COUNT > 900_000 && $correct_count > $GLOBAL_MAX_CORRECT ) {
+        $GLOBAL_MAX_CORRECT = $correct_count;
+        say "New global max correct hit, new value: ${correct_count}";
+    }
+
+    if ( $correct_count == $NEEDED_TO_WIN ) {
+        say "Woot, solved!";
         return ( $potential_solved_board_ref, $index, $correct_count );
     }
     # &shrug;
-    elsif ( $index > 80 || $index < 0 ) {
-        say "Out of bounds index selected, somehow? Has never happened but 🤷‍♂️";
+    elsif ( $index > 80 ) {
+        say "Index higher than 80, don't know what happened honestly.";
         return ();
     }
 
     # If the current index is already filled in, we assume it's correct and move on
     if ( ${ $potential_solved_board_ref }->[$index] != 0 ) {
-        printf "Index %d already has a non-zero value (%d). Moving onto next index.\n", $index, ${ $potential_solved_board_ref }->[$index];
-        return $self->_actually_solve($potential_solved_board_ref, $self->next_position( $$potential_solved_board_ref), $correct_count + 1);
+        # printf "Index %d already has a non-zero value (%d). Moving onto next index.\n", $index, ${ $potential_solved_board_ref }->[$index];
+        return $self->_actually_solve($potential_solved_board_ref, $self->next_position($$potential_solved_board_ref), $correct_count + 1);
     } else {
         my %possible_values = get_possible_values($$potential_solved_board_ref, $index);
-        printf "Possible values for %d are: %s\n", $index, join(',', keys %possible_values);
+        # printf "Possible values for %d are: %s\n", $index, join(',', keys %possible_values);
         for my $try_value ( keys %possible_values ) {
-            printf "Attempting to fill index %d (%d correct so far) with: %d\n", $index,$correct_count,$try_value;
-            printf "\tSetting to value %d\n", $try_value;
+            # printf "Attempting to fill index %d (%d correct so far) with: %d\n", $index,$correct_count,$try_value;
+            # printf "\tSetting to value %d\n", $try_value;
             my $new_board = [ @{$$potential_solved_board_ref} ];
             $new_board->[$index] = $try_value;
 
-            my ($new_ref,undef,$cc) = $self->_actually_solve(\$new_board,$self->next_position($new_board),$correct_count+1);
-            if ( $cc == 81 ) {
-                return ($new_ref,$index,$cc);
+            my $next_position = $correct_count + 1 == $NEEDED_TO_WIN ? $index : $self->next_position($new_board);
+            my ($new_ref,$idx,$cc) = $self->_actually_solve(\$new_board,$next_position,$correct_count+1);
+            if ( $cc == $NEEDED_TO_WIN ) {
+                return ($new_ref,$idx,$cc);
             }
         }
     }
@@ -105,17 +114,19 @@ sub next_position ( $self, $board ) {
 
         return $indexes[ $index ];
     } elsif ( $pos_algo eq 'lowest_options') {
-        # TODO
         my @all_indexes_with_no_values = get_empty_indexes($board);
         my %indexes_by_number_of_options;
-        
+
         for my $idx ( @all_indexes_with_no_values ) {
             my $number_of_options = scalar(get_possible_values($board,$idx));
             push @{ $indexes_by_number_of_options{$number_of_options} }, $idx;
         }
-        my $lowest_options    = (sort { $b <=> $a } keys %indexes_by_number_of_options)[-1];
-        my $number_of_indexes = scalar(@{$indexes_by_number_of_options{$lowest_options}});
-        my $random_index      = int(rand() * $number_of_indexes);
+
+        my ($lowest_options,$number_of_indexes,$random_index);
+
+        $lowest_options    = (sort { $b <=> $a } keys %indexes_by_number_of_options)[-1];
+        $number_of_indexes = scalar(@{$indexes_by_number_of_options{$lowest_options}});
+        $random_index      = int(rand() * $number_of_indexes);
 
         return $indexes_by_number_of_options{$lowest_options}->[$random_index];
     }
@@ -127,23 +138,6 @@ sub get_empty_indexes ( $board ) {
     return grep { $board->[$_] == 0 } 0..80;
 }
 
-#  IN:
-#       1: reference to copy of sudoku board (flattened)
-#       2: index of the cell you'd like to set
-#       3: value you'd like to set into the square
-# OUT:
-#       1: 1 if the value was successfully set (ie there is no collision in the row/column/square)
-#          0 if the value was not set due to duplicate
-sub check_and_place_value_at_index ( $board_ref, $index, $value ) {
-    my %possible_values = get_possible_values( $$board_ref, $index );
-
-    if ( not exists $possible_values{$value} ) {
-        return 0;
-    } else {
-        $$board_ref->[$index] = $value;
-        return 1;
-    }
-}
 
 # IN: index of cell within square
 # OUT:
