@@ -42,15 +42,17 @@ printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 
 
 sub start_solve ( $board_ref, $index, $correct_count ) {
     # printf "start_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
-    say "${GLOBAL_ITERATIONS_COUNT} iterations checked."
-        if ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0;
-    ($GLOBAL_MAX_CORRECT = $correct_count) and 
-       say "New global max correct hit, new value: ${correct_count}"
-           if $correct_count > $GLOBAL_MAX_CORRECT;
+    if ( ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0 ) {
+        say "${GLOBAL_ITERATIONS_COUNT} iterations checked.";
+    }
+
+    if ( $GLOBAL_ITERATIONS_COUNT > 900_000 && $correct_count > $GLOBAL_MAX_CORRECT ) {
+        $GLOBAL_MAX_CORRECT = $correct_count;
+        say "New global max correct hit, new value: ${correct_count}";
+    }
 
     if ( $correct_count == $WINNING_COUNT ) {
         say "Woot, solved!";
-        printf "It took %d iterations to solve.\n", $GLOBAL_ITERATIONS_COUNT;
         return ( $board_ref, $index, $correct_count );
     }
     # &shrug;
