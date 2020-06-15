@@ -30,14 +30,15 @@ my $GLOBAL_ITERATIONS_COUNT = 0;
 
 GetOptions(
     'pos=s'   => \(my $POSITION_ALGORITHM = 'lowest_options'),
-    'board=s' => \(my $BOARD_STRING = "148523900000000010000006850582300700000807000009005138097100000020000000004030000"),
+    'board=s' => \(my $BOARD_STRING = "040020900000000010000006850582300700000807000009005138097100000020000000004030000"),
+    'debug'   => \(my $DEBUG = 0),
 );
 
 my $board_string = $BOARD_STRING;
 my $starting_board = [ split //, $board_string ];
 my $MISSING_CELLS = () = $board_string =~ /0/g;
 my $WINNING_COUNT =
-    $POSITION_ALGORITHM eq 'lowest_options' || $POSITION_ALGORITHM eq 'random_empty' ? $MISSING_CELLS - 1 : 81;
+    $POSITION_ALGORITHM eq 'lowest_options' || $POSITION_ALGORITHM eq 'random_empty' ? $MISSING_CELLS : 81;
 
 printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 - $MISSING_CELLS, $MISSING_CELLS;
 
@@ -75,9 +76,10 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
             my $new_board = [ @{$$board_ref} ];
             $new_board->[$index] = $try_value;
 
-            my ($new_ref,undef,$cc) = start_solve(\$new_board,next_position($new_board),$correct_count+1);
+            my $next_position = $correct_count + 1 == $WINNING_COUNT ? $index : next_position($new_board);
+            my ($new_ref,$idx,$cc) = start_solve(\$new_board,$next_position,$correct_count+1);
             if ( $cc == $WINNING_COUNT ) {
-                return ($new_ref,80,$cc);
+                return ($new_ref,$idx,$cc);
             }
         }
     }
@@ -85,17 +87,28 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
     return ();
 }
 my $START_TIME = time;
-my ($solving_board,undef,undef) = start_solve(\$starting_board, get_random_empty_index($starting_board),0);
+my ($solving_board,undef,undef) = start_solve(\$starting_board, next_position($starting_board),0);
 my $FINISH_TIME = time;
 
 say '=' x 80;
-printf "If the puzzle is solved then it took %sms to finish, and a total of %d iterations to solve.", int( ($FINISH_TIME - $START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
+printf "It took %sms to finish, and a total of %d iterations to solve.", int( ($FINISH_TIME - $START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
 say "The original board was:";
 print_board($starting_board);
 say '=' x 80;
 say "The solved board is:";
 print_board($$solving_board);
-printf "\tSquare %d is %svalid\n", $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
+if ( $DEBUG ) {
+    printf "\tSquare %d is %svalid\n", $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
+    printf "\tColumn %d is %svalid\n", $_, (is_column_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
+    printf "\tRow %d is %svalid\n", $_, (is_row_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
+
+    my @empty_indexes = get_empty_indexes($$solving_board);
+
+    if ( @empty_indexes ) {
+        printf "Found %d empty index(es)... lets see what if it only has one possibility ey?\n", @empty_indexes;
+        printf "\tIndex: %d has possible values of: %s\n", $empty_indexes[0], get_possible_values($$solving_board,$empty_indexes[0]);
+    }
+}
 say '=' x 80;
 
 exit;
@@ -138,6 +151,10 @@ sub next_position ( $board ) {
                 $lowest_options,
                 $number_of_indexes,
                 $random_index;
+            printf "\tSquare %d is %svalid\n", $_, (is_square_valid($board,$_) == 1 ? '' : 'not ') for 0..8;
+            printf "\tColumn %d is %svalid\n", $_, (is_column_valid($board,$_) == 1 ? '' : 'not ') for 0..8;
+            printf "\tRow %d is %svalid\n", $_, (is_row_valid($board,$_) == 1 ? '' : 'not ') for 0..8;
+
 
             die;
         };
