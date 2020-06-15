@@ -42,6 +42,38 @@ my $WINNING_COUNT =
 
 printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 - $MISSING_CELLS, $MISSING_CELLS;
 
+my $START_TIME = time;
+my ($solving_board,undef,undef) = start_solve(\$starting_board, next_position($starting_board),0);
+my $FINISH_TIME = time;
+
+say '=' x 80;
+printf "It took %sms to finish, and a total of %d iterations to solve.", int( ($FINISH_TIME - $START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
+say "The original board was:";
+print_board($starting_board);
+say '=' x 80;
+say "The solved board is:";
+print_board($$solving_board);
+
+if ( $DEBUG ) {
+    say "Oh you don't trust The Code™? Fine. Here's what the under the hood code thinks:";
+    for ( 0..8 ) {
+        printf "\tSquare %d is %svalid\tColumn %d is %svalid\tRow %d is %svalid\n",
+            $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not '),
+            $_, (is_column_valid($$solving_board,$_) == 1 ? '' : 'not '),
+            $_, (is_row_valid($$solving_board,$_) == 1 ? '' : 'not ');
+    }
+
+    my @empty_indexes = get_empty_indexes($$solving_board);
+
+    if ( @empty_indexes ) {
+        printf "Found %d empty index(es)... lets see what if it only has one possibility ey?\n", @empty_indexes;
+        printf "\tIndex: %d has possible values of: %s\n", $empty_indexes[0], get_possible_values($$solving_board,$empty_indexes[0]);
+    }
+}
+say '=' x 80;
+
+exit;
+
 sub start_solve ( $board_ref, $index, $correct_count ) {
     # printf "start_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
     if ( ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0 ) {
@@ -86,32 +118,6 @@ sub start_solve ( $board_ref, $index, $correct_count ) {
 
     return ();
 }
-my $START_TIME = time;
-my ($solving_board,undef,undef) = start_solve(\$starting_board, next_position($starting_board),0);
-my $FINISH_TIME = time;
-
-say '=' x 80;
-printf "It took %sms to finish, and a total of %d iterations to solve.", int( ($FINISH_TIME - $START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
-say "The original board was:";
-print_board($starting_board);
-say '=' x 80;
-say "The solved board is:";
-print_board($$solving_board);
-if ( $DEBUG ) {
-    printf "\tSquare %d is %svalid\n", $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
-    printf "\tColumn %d is %svalid\n", $_, (is_column_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
-    printf "\tRow %d is %svalid\n", $_, (is_row_valid($$solving_board,$_) == 1 ? '' : 'not ') for 0..8;
-
-    my @empty_indexes = get_empty_indexes($$solving_board);
-
-    if ( @empty_indexes ) {
-        printf "Found %d empty index(es)... lets see what if it only has one possibility ey?\n", @empty_indexes;
-        printf "\tIndex: %d has possible values of: %s\n", $empty_indexes[0], get_possible_values($$solving_board,$empty_indexes[0]);
-    }
-}
-say '=' x 80;
-
-exit;
 
 sub next_position ( $board ) {
     my $pos_algo = $POSITION_ALGORITHM;
