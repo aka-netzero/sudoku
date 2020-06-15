@@ -139,31 +139,10 @@ sub next_position ( $board ) {
         }
 
         my ($lowest_options,$number_of_indexes,$random_index);
-        eval {
-            $lowest_options    = (sort { $b <=> $a } keys %indexes_by_number_of_options)[-1];
-            $number_of_indexes = scalar(@{$indexes_by_number_of_options{$lowest_options}});
-            $random_index      = int(rand() * $number_of_indexes);
-            1;
-        } or do {
-            say @!;
-            say "Failed trying to find a new position for the following board:";
-            print_board($board);
-            printf "Variables in eval look like:\n\tindexes_by_number_of_options => \n\t\t%s\n\tlowest_options => %s\n\tnumber_of_indexes => %d\n\trandom_index => %d\n",
-                join("\n\t\t",
-                    map {
-                        sprintf '%s => %s', $_, join(',', @{ $indexes_by_number_of_options{$_} })
-                    } sort { $b <=> $a } keys %indexes_by_number_of_options
-                ),
-                $lowest_options,
-                $number_of_indexes,
-                $random_index;
-            printf "\tSquare %d is %svalid\n", $_, (is_square_valid($board,$_) == 1 ? '' : 'not ') for 0..8;
-            printf "\tColumn %d is %svalid\n", $_, (is_column_valid($board,$_) == 1 ? '' : 'not ') for 0..8;
-            printf "\tRow %d is %svalid\n", $_, (is_row_valid($board,$_) == 1 ? '' : 'not ') for 0..8;
 
-
-            die;
-        };
+        $lowest_options    = (sort { $b <=> $a } keys %indexes_by_number_of_options)[-1];
+        $number_of_indexes = scalar(@{$indexes_by_number_of_options{$lowest_options}});
+        $random_index      = int(rand() * $number_of_indexes);
 
         return $indexes_by_number_of_options{$lowest_options}->[$random_index];
     }
