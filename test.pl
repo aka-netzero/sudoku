@@ -4,6 +4,7 @@ no warnings 'experimental::signatures';
 
 use lib './lib/';
 use Sudoku::Solver::FlatArrayBacktrack;
+use Sudoku::Solver;
 
 my @board_raw = qw(
     0 4 0   0 2 0   9 0 0
@@ -21,9 +22,17 @@ my @board_raw = qw(
 #                   040020900000000010000006850582300700000807000009005138097100000020000000004030000
 my $board_string = "040020900000000010000006850582300700000807000009005138097100000020000000004030000";
 
-my $solver = Sudoku::Solver::FlatArrayBacktrack->new({
-    board_string => $board_string,
-    position_algorithm => 'lowest_options'
+my $solver = Sudoku::Solver->new({
+    type        => 'FlatArrayBacktrack',
+    board_string=> $board_string,
+    arguments   => { position_algorithm => 'lowest_options' }
 });
 
-$solver->solve;
+$solver->solve_n_times(5);
+
+# my $solver = Sudoku::Solver::FlatArrayBacktrack->new({
+#     board_string => $board_string,
+#     position_algorithm => 'lowest_options'
+# });
+
+# $solver->solve;

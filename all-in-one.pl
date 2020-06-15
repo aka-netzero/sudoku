@@ -32,7 +32,10 @@ GetOptions(
     'pos=s'   => \(my $POSITION_ALGORITHM = 'lowest_options'),
     'board=s' => \(my $BOARD_STRING = "040020900000000010000006850582300700000807000009005138097100000020000000004030000"),
     'debug'   => \(my $DEBUG = 0),
+    'stats'   => \(my $STATS_MODE),
 );
+
+$BOARD_STRING =~ s/\./0/g;
 
 my $board_string = $BOARD_STRING;
 my $starting_board = [ split //, $board_string ];
@@ -40,53 +43,60 @@ my $MISSING_CELLS = () = $board_string =~ /0/g;
 my $WINNING_COUNT =
     $POSITION_ALGORITHM eq 'lowest_options' || $POSITION_ALGORITHM eq 'random_empty' ? $MISSING_CELLS : 81;
 
-printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 - $MISSING_CELLS, $MISSING_CELLS;
+unless( $STATS_MODE ) {
+    printf "Starting solve with %d filled in cells, meaning %d missing cells\n", 81 - $MISSING_CELLS, $MISSING_CELLS;
+}
 
 my $START_TIME = time;
 my ($solving_board,undef,undef) = start_solve(\$starting_board, next_position($starting_board),0);
 my $FINISH_TIME = time;
 
-say '=' x 80;
-printf "It took %sms to finish, and a total of %d iterations to solve.", int( ($FINISH_TIME - $START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
-say "The original board was:";
-print_board($starting_board);
-say '=' x 80;
-say "The solved board is:";
-print_board($$solving_board);
+if( $STATS_MODE ){
+    printf "%d,%d\n", int( ($FINISH_TIME-$START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
+} else {
+    say '=' x 80;
+    printf "It took %sms to finish, and a total of %d iterations to solve.", int( ($FINISH_TIME - $START_TIME) * 1000), $GLOBAL_ITERATIONS_COUNT;
+    say "The original board was:";
+    print_board($starting_board);
+    say '=' x 80;
+    say "The solved board is:";
+    print_board($$solving_board);
 
-if ( $DEBUG ) {
-    say "Oh you don't trust The Code™? Fine. Here's what the under the hood code thinks:";
-    for ( 0..8 ) {
-        printf "\tSquare %d is %svalid\tColumn %d is %svalid\tRow %d is %svalid\n",
-            $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not '),
-            $_, (is_column_valid($$solving_board,$_) == 1 ? '' : 'not '),
-            $_, (   is_row_valid($$solving_board,$_) == 1 ? '' : 'not ');
+    if ( $DEBUG ) {
+        say "Oh you don't trust The Code™? Fine. Here's what the under the hood code thinks:";
+        for ( 0..8 ) {
+            printf "\tSquare %d is %svalid\tColumn %d is %svalid\tRow %d is %svalid\n",
+                $_, (is_square_valid($$solving_board,$_) == 1 ? '' : 'not '),
+                $_, (is_column_valid($$solving_board,$_) == 1 ? '' : 'not '),
+                $_, (   is_row_valid($$solving_board,$_) == 1 ? '' : 'not ');
+        }
+
+        my @empty_indexes = get_empty_indexes($$solving_board);
+
+        if ( @empty_indexes ) {
+            printf "Found %d empty index(es)... lets see what if it only has one possibility ey?\n", @empty_indexes;
+            printf "\tIndex: %d has possible values of: %s\n", $empty_indexes[0], get_possible_values($$solving_board,$empty_indexes[0]);
+        }
     }
-
-    my @empty_indexes = get_empty_indexes($$solving_board);
-
-    if ( @empty_indexes ) {
-        printf "Found %d empty index(es)... lets see what if it only has one possibility ey?\n", @empty_indexes;
-        printf "\tIndex: %d has possible values of: %s\n", $empty_indexes[0], get_possible_values($$solving_board,$empty_indexes[0]);
-    }
+    say '=' x 80;
 }
-say '=' x 80;
 
 exit;
 
 sub start_solve ( $board_ref, $index, $correct_count ) {
     # printf "start_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
-    if ( ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0 ) {
+    ++$GLOBAL_ITERATIONS_COUNT;
+    if ( !$STATS_MODE &&  $GLOBAL_ITERATIONS_COUNT % 150000 == 0 ) {
         say "${GLOBAL_ITERATIONS_COUNT} iterations checked.";
     }
 
-    if ( $GLOBAL_ITERATIONS_COUNT > 900_000 && $correct_count > $GLOBAL_MAX_CORRECT ) {
+    if ( !$STATS_MODE && $GLOBAL_ITERATIONS_COUNT > 900_000 && $correct_count > $GLOBAL_MAX_CORRECT ) {
         $GLOBAL_MAX_CORRECT = $correct_count;
         say "New global max correct hit, new value: ${correct_count}";
     }
 
     if ( $correct_count == $WINNING_COUNT ) {
-        say "Woot, solved!";
+        say "Woot, solved!" unless $STATS_MODE;
         return ( $board_ref, $index, $correct_count );
     }
     # &shrug;
