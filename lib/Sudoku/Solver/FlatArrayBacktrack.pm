@@ -43,6 +43,7 @@ sub get_board_ref ( $self ) {
 
 sub reset ( $self ) {
     $self->{_board} = [ @{$self->{_original_board}} ];
+    $GLOBAL_ITERATIONS_COUNT = 0;
 }
 
 sub solve ( $self ) {
@@ -65,36 +66,22 @@ sub solve ( $self ) {
 
 sub _actually_solve ( $self, $potential_solved_board_ref, $index, $correct_count ) {
     my $NEEDED_TO_WIN = $self->cells_to_be_filled;
-    # printf "start_solve called with index and correct_count: %d, %d\n", $index,$correct_count;
-    if ( ++$GLOBAL_ITERATIONS_COUNT % 150000 == 0 ) {
+
+    if ( ++$GLOBAL_ITERATIONS_COUNT % 1_000_000 == 0 ) {
         say "${GLOBAL_ITERATIONS_COUNT} iterations checked.";
     }
 
-    if ( $GLOBAL_ITERATIONS_COUNT > 900_000 && $correct_count > $GLOBAL_MAX_CORRECT ) {
-        $GLOBAL_MAX_CORRECT = $correct_count;
-        say "New global max correct hit, new value: ${correct_count}";
-    }
-
     if ( $correct_count == $NEEDED_TO_WIN ) {
-        say "Woot, solved!";
         return ( $potential_solved_board_ref, $index, $correct_count );
-    }
-    # &shrug;
-    elsif ( $index > 80 ) {
-        say "Index higher than 80, don't know what happened honestly.";
-        return ();
     }
 
     # If the current index is already filled in, we assume it's correct and move on
     if ( ${ $potential_solved_board_ref }->[$index] != 0 ) {
-        # printf "Index %d already has a non-zero value (%d). Moving onto next index.\n", $index, ${ $potential_solved_board_ref }->[$index];
         return $self->_actually_solve($potential_solved_board_ref, $self->next_position($$potential_solved_board_ref), $correct_count + 1);
     } else {
         my %possible_values = get_possible_values($$potential_solved_board_ref, $index);
-        # printf "Possible values for %d are: %s\n", $index, join(',', keys %possible_values);
+
         for my $try_value ( keys %possible_values ) {
-            # printf "Attempting to fill index %d (%d correct so far) with: %d\n", $index,$correct_count,$try_value;
-            # printf "\tSetting to value %d\n", $try_value;
             my $new_board = [ @{$$potential_solved_board_ref} ];
             $new_board->[$index] = $try_value;
 
