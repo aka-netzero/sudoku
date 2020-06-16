@@ -77,12 +77,16 @@ sub _actually_solve ( $self, $potential_solved_board_ref, $index, $correct_count
     } else {
         my %possible_values = get_possible_values($$potential_solved_board_ref, $index);
 
+        if ( $NEEDED_TO_WIN == $correct_count + 1 && scalar(keys %possible_values) == 1 ) {
+            ${ $potential_solved_board_ref }->[$index] = (keys %possible_values)[0];
+            return ($potential_solved_board_ref, $index, $NEEDED_TO_WIN);
+        }
+
         for my $try_value ( keys %possible_values ) {
             my $new_board = [ @{$$potential_solved_board_ref} ];
             $new_board->[$index] = $try_value;
 
-            my $next_position = $correct_count + 1 == $NEEDED_TO_WIN ? $index : $self->next_position($new_board);
-            my ($new_ref,$idx,$cc) = $self->_actually_solve(\$new_board,$next_position,$correct_count+1);
+            my ($new_ref,$idx,$cc) = $self->_actually_solve(\$new_board,$self->next_position($new_board),$correct_count+1);
             if ( $cc == $NEEDED_TO_WIN ) {
                 return ($new_ref,$idx,$cc);
             }
