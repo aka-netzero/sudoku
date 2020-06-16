@@ -25,6 +25,8 @@ use constant SUPPORTED_TYPES => {
 # })
 sub new ( $class, $options ) {
     die 'You must provide a board string in the board argument to Solver->new!' unless defined $options->{board_string};
+    $options->{board_string} =~ s/\s//g;
+    die 'The provided board_string should be exactly 81 characters long' unless length($options->{board_string}) == 81;
 
     my $solver_type     = SUPPORTED_TYPES->{ $options->{type} } // DEFAULT_TYPE;
     my $solver_package  = "${class}::${solver_type}";
