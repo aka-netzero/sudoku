@@ -9,6 +9,15 @@ use sayf;
 use Hash::Util qw( hash_seed );
 use Getopt::Long;
 
+# This is ugly, I know. BUT! It allows for completely
+# reproducible results every time so long as the next run
+# uses the same srand seed (which I print below)
+unless ( exists $ENV{PERL_HASH_SEED} ) {
+    my $command = sprintf "PERL_HASH_SEED=0 %s", join(' ', $^X, $0, @ARGV);
+    exec $command;
+    exit;
+}
+
 GetOptions(
     'n=i'       => \(my $ITERATIONS_TO_RUN = 5),
     't|type=s'  => \(my $TYPE = 'FlatArrayBacktrack'),
@@ -45,7 +54,7 @@ my $solver = Sudoku::Solver->new({
 });
 
 
-sayf "Starting solve with srand seed %s, and PERL_HASH_KEY %s", $SEED, hash_seed();
+sayf "Starting solve with srand seed %s", $SEED;
 $solver->solve_n_times($ITERATIONS_TO_RUN,$SILENT_PER_RUN);
 
 # my $solver = Sudoku::Solver::FlatArrayBacktrack->new({
