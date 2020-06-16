@@ -121,12 +121,9 @@ sub next_position ( $self, $board ) {
     }
 }
 
-
-
 sub get_empty_indexes ( $board ) {
     return grep { $board->[$_] == 0 } 0..80;
 }
-
 
 # IN: index of cell within square
 # OUT:
