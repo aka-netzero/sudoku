@@ -4,8 +4,6 @@ use v5.30;
 use feature 'signatures';
 no warnings 'experimental::signatures';
 
-use Time::HiRes qw(time);
-
 use constant POSITION_ALGORITHMS => {
     map { $_ => $_ }
     qw( random random_empty lowest_options )
@@ -47,9 +45,7 @@ sub reset ( $self ) {
 }
 
 sub solve ( $self ) {
-    my $start_time = time;
     my ( $solved_board_ref, undef, $filled_correctly ) = $self->_actually_solve( $self->get_board_ref, $self->next_position($self->{_original_board}), 0 );
-    my $finished_time = time;
 
     if ( $solved_board_ref && $filled_correctly ) {
         if ( $filled_correctly == $self->cells_to_be_filled ) {
