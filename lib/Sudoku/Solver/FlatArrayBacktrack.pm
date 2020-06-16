@@ -26,6 +26,8 @@ sub new ( $class, $options ) {
     };
     $self->{_original_board} = [ @{ $self->{_board} } ];
 
+    die 'Invalid board provided' if @{ $self->{_board} } > 81;
+
     return bless $self, __PACKAGE__;
 }
 
