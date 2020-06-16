@@ -3,32 +3,50 @@ use feature 'signatures';
 no warnings 'experimental::signatures';
 
 use lib './lib/';
-use Sudoku::Solver::FlatArrayBacktrack;
 use Sudoku::Solver;
+use sayf;
 
-my @board_raw = qw(
-    0 4 0   0 2 0   9 0 0
-    0 0 0   0 0 0   0 1 0
-    0 0 0   0 0 6   8 5 0
+use Hash::Util qw( hash_seed );
+use Getopt::Long;
+
+GetOptions(
+    'n=i'       => \(my $ITERATIONS_TO_RUN = 5),
+    't|type=s'  => \(my $TYPE = 'FlatArrayBacktrack'),
+    'b|board=s' => \(my $BOARD_STRING = '040020900000000010000006850582300700000807000009005138097100000020000000004030000'),
+    'args=s'    => \(my $ARGS = 'position_algorithm=lowest_options'),
     
-    5 8 2   3 0 0   7 0 0
-    0 0 0   8 0 7   0 0 0
-    0 0 9   0 0 5   1 3 8
-    
-    0 9 7   1 0 0   0 0 0
-    0 2 0   0 0 0   0 0 0
-    0 0 4   0 3 0   0 0 0
+    'seed=i'    => \(my $SEED),
+
+    'per-run'   => \(my $SILENT_PER_RUN = undef),
+    'd|debug'   => \(my $DEBUG = undef),
 );
-#                   040020900000000010000006850582300700000807000009005138097100000020000000004030000
-my $board_string = "040020900000000010000006850582300700000807000009005138097100000020000000004030000";
+
+if ( $SEED ) {
+    srand($SEED);
+} else {
+    $SEED = srand;
+}
+
+my $arguments = {
+    map {
+        my ($k,$v) = split '=', $_;
+        ( $k => $v )
+    } split /[|,]/, $ARGS
+};
+
+$BOARD_STRING =~ s/\./0/g;
+
 
 my $solver = Sudoku::Solver->new({
-    type        => 'FlatArrayBacktrack',
-    board_string=> $board_string,
-    arguments   => { position_algorithm => 'lowest_options' }
+    type        => $TYPE,
+    board_string=> $BOARD_STRING,
+    debug       => $DEBUG,
+    arguments   => $arguments
 });
 
-$solver->solve_n_times(5);
+
+sayf "Starting solve with srand seed %s, and PERL_HASH_KEY %s", $SEED, hash_seed();
+$solver->solve_n_times($ITERATIONS_TO_RUN,$SILENT_PER_RUN);
 
 # my $solver = Sudoku::Solver::FlatArrayBacktrack->new({
 #     board_string => $board_string,
