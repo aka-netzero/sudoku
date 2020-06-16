@@ -16,8 +16,6 @@ use constant SUPPORTED_TYPES => {
     )
 };
 
-
-
 # Sudoku::Solver->new({
 #   board_string => ...
 #           type => one of keys %{SUPPORTED_TYPES}, maps to package in Sudoku::Solver::
@@ -96,7 +94,5 @@ sub solve_n_times ( $self, $n, $print_per_run_info = 1 ) {
         say Dumper $extremes;
     };
 }
-
-# 56.683 / 131.455
 
 1;
