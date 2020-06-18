@@ -13,6 +13,7 @@ use constant SUPPORTED_TYPES => {
     map { $_ => $_ }
     qw(
         FlatArrayBacktrack
+        FlatArrayBacktrackV2
     )
 };
 
@@ -33,7 +34,8 @@ sub new ( $class, $options ) {
 
     eval "require $solver_package;" or die $@;
 
-    $options->{arguments}{board_string} //= $options->{board_string};
+    $options->{board_string} =~ s/\./0/g;
+    $options->{arguments}{board_string} //= delete $options->{board_string};
 
     my $self = {
         solver => ${solver_package}->new( $options->{arguments} ),
