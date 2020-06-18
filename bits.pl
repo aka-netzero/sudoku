@@ -5,10 +5,37 @@ no warnings 'experimental::signatures';
 use lib './lib/';
 use sayf;
 
-sayb( 1 << $_ - 1 ) for 1..9;
+use constant {
+    ONE     => 1 << 0,  SIX     => 1 << 5,
+    TWO     => 1 << 1,  SEVEN   => 1 << 6,
+    THREE   => 1 << 2,  EIGHT   => 1 << 7,
+    FOUR    => 1 << 3,  NINE    => 1 << 8,
+    FIVE    => 1 << 4,
+};
+
+use constant DEC_TO_BIN => {
+    1 => ONE,       6 => SIX,
+    2 => TWO,       7 => SEVEN,
+    3 => THREE,     8 => EIGHT,
+    4 => FOUR,      9 => NINE,
+    5 => FIVE,
+};
+
+# Indicates that 4 and 2 are already used
+my $values = TWO | FOUR;
+
+sayb( $values );
+for ( 1..9 ) {
+    unless ( $values & DEC_TO_BIN->{$_} ) {
+        sayf "Number %d is available!", $_;
+    }
+}
+exit;
 
 
 sub sayb ( $binary ) { sayf( "%#012b %1\$3d", $binary ); }
+
+exit;
 
 # for ( my $k = 1; $k<40; $k += 7 ) {
 #     sayf "%10b %3d",$k,$k;
@@ -31,7 +58,7 @@ sub convert_board_string ( $board_string ) {
 
     for ( 0 .. 80 ) {
         my $square = int( int( $_ / 27 ) * 3 + ( $_ % 9 / 3 ) );
-        my $value = 1 << $cells[$_];
+        my $value = DEC_TO_BIN->{$cells[$_]};
         $board[$_] = $value;
         $rows[int($_/9)] |= $value;
         $columns[$_%9]   |= $value;
@@ -63,15 +90,15 @@ sub get_xy_from_flat ( $index ) {
 0 0 4   0 3 0   0 0 0
 
 
-board[1]     = 0b0000010000
-rows[0]     |= 0b0000010000 = (0b0000000000 | 0b0000010000) = 0b0000010000
-columns[1]  |= 0b0000010000 = (0b0000000000 | 0b0000010000) = 0b0000010000
-square[0]   |= 0b0000010000 = (0b0000000000 | 0b0000010000) = 0b0000010000
+board[1]     = 0b000001000
+rows[0]     |= 0b000001000 = (0b000000000 | 0b000001000) = 0b000001000
+columns[1]  |= 0b000001000 = (0b000000000 | 0b000001000) = 0b000001000
+square[0]   |= 0b000001000 = (0b000000000 | 0b000001000) = 0b000001000
 
-board[4]     = 0b0000000010
-rows[0]     |= 0b0000000010 = (0b0000010000 | 0b0000000010) = 0b0000010010
-columns[4]  |= 0b0000000010
-square[1]   |= 0b0000000010
+board[4]     = 0b000000010
+rows[0]     |= 0b000000010 = (0b000001000 | 0b000000010) = 0b0000010010
+columns[4]  |= 0b000000010
+square[1]   |= 0b000000010
 1 0b0000000010   2
 2 0b0000000100   4
 3 0b0000001000   8
