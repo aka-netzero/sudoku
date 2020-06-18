@@ -5,7 +5,7 @@ no warnings 'experimental::signatures';
 use lib './lib/';
 use sayf;
 
-use Time::Hires qw( time );
+use Time::HiRes qw( time );
 
 use constant {
     ZERO    => 1 << 0,  FIVE    => 1 << 5,
@@ -51,21 +51,21 @@ if ( defined $last_index ) {
     sayf "I think we solved it in %d iterations, and a total of %sms", $ITERATION_COUNT, ($END_TIME - $START_TIME) * 1000;
     print_board( $completed_board );
 } else {
-    say "Something went wrong..";
+    sayf "Failed in %d iterations, and a total of %.3fms", $ITERATION_COUNT, ($END_TIME - $START_TIME) * 1000;
 }
 exit;
 
 sub solve ( $index, $board, $rows, $columns, $squares, $correct_count = 0 ) {
     ++$ITERATION_COUNT;
     if ( $correct_count == $MISSING_CELLS ) {
-        say "Solved?";
         return ($index,$board,$rows,$columns,$squares,$correct_count);
     }
 
     my @possible_values = get_possible_values($board,$index,$rows,$columns,$squares);
 
+    # Bail out if this is the last needed cell and it only has one value.
+    # Why waste the ops for the rest?
     if ( @possible_values == 1 && $correct_count + 1 == $MISSING_CELLS ) {
-        say "At the last possible cell ( possible_values == 1 and correct_count + 1 == missing_cells";
         $board->[$index] = shift @possible_values;
         return ($index,$board,$rows,$columns,$squares,$MISSING_CELLS);
     }
@@ -74,8 +74,7 @@ sub solve ( $index, $board, $rows, $columns, $squares, $correct_count = 0 ) {
     my $col_index    = $index % 9;
     my $square_index = int( int( $index / 27 ) * 3 + ( $index % 9 / 3 ) );
 
-    sayf "Selecting a possible value out of %d possibilities", scalar(@possible_values);
-    while ( my $try_value = splice @possible_values, int(rand()*scalar(@possible_values)), 1 ) {
+    while ( my ($try_value) = splice @possible_values, int(rand()*scalar(@possible_values)), 1 ) {
         my $new_board = [@$board];      my $r = [@$rows];
         my $c         = [@$columns];    my $s = [@$squares];
         my $cc        = $correct_count; my $i;
@@ -96,24 +95,20 @@ sub solve ( $index, $board, $rows, $columns, $squares, $correct_count = 0 ) {
 }
 
 sub next_position ( $board, $r, $c, $s ) {
-    # say "next_position called";
     my @empty_indexes = grep { $board->[$_] == ZERO } 0..$#{$board};
-    # sayf "\t%d total empty indexes found", scalar(@empty_indexes);
     my %indexes_by_number_of_options;
     my $lowest_count = 9;
 
     for my $idx ( @empty_indexes ) {
         my $possibility_count = scalar( get_possible_values($board,$idx,$r,$c,$s) );
-        # sayf "\tindex %d has %d possible valid values", $idx, $possibility_count;
 
         if ( $possibility_count < $lowest_count ) {
             $lowest_count = $possibility_count;
             push @{$indexes_by_number_of_options{$possibility_count} //= [] }, $idx;
         }
     }
-    my $selected_index = $indexes_by_number_of_options{$lowest_count}->[ int( rand() * scalar(@{$indexes_by_number_of_options{$lowest_count}}) ) ];
-    sayf "Selected %d as the next_position", $selected_index;
-    return $selected_index;
+
+    return $indexes_by_number_of_options{$lowest_count}->[ int( rand() * scalar(@{$indexes_by_number_of_options{$lowest_count}}) ) ];
 }
 
 sub get_possible_values ( $board, $index, $rows, $columns, $squares ) {
@@ -124,7 +119,7 @@ sub get_possible_values ( $board, $index, $rows, $columns, $squares ) {
     my $possibilities = ~( $rows->[$row_index] | $columns->[$col_index] | $squares->[$square_index] );
 
     for my $value ( 1..9 ) {
-        unless ( $possibilities & DEC_TO_BIN->{$value} ) {
+        if ( $possibilities & DEC_TO_BIN->{$value} ) {
             push @possible_values, DEC_TO_BIN->{$value};
         }
     }
@@ -159,14 +154,6 @@ sub print_board ( $board, $highlight_index = undef ) {
 }
 
 __END__
-
-sub get_square_from_flat ( $idx ) {
-    return int( int( $idx / 27 ) * 3 + ( $idx % 9 / 3 ) );
-}
-
-sub get_xy_from_flat ( $index ) {
-    return ($index % 9, int($index / 9) );
-}
 
 0 4 0   0 2 0   9 0 0
 0 0 0   0 0 0   0 1 0
