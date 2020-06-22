@@ -13,7 +13,7 @@ my $GLOBAL_ITERATIONS_COUNT = 0;
 my $GLOBAL_MAX_CORRECT      = 0;
 
 sub new ( $class, $options ) {
-    my $position_algorithm = $options->{position_algorithm} // 'random';
+    my $position_algorithm = $options->{position_algorithm} // 'lowest_options';
     my $self = {
         _board => (
             $options->{board_string} ? convert_board_string($options->{board_string}) :
