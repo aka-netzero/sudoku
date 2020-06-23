@@ -20,7 +20,7 @@ unless ( exists $ENV{PERL_HASH_SEED} ) {
 
 GetOptions(
     'n=i'       => \(my $ITERATIONS_TO_RUN = 5),
-    't|type=s'  => \(my $TYPE = 'FlatArrayBacktrack'),
+    't|type=s'  => \(my $TYPE = 'FlatArrayBacktrackV2'),
     'b|board=s' => \(my $BOARD_STRING = '040020900000000010000006850582300700000807000009005138097100000020000000004030000'),
     'args=s'    => \(my $ARGS = 'position_algorithm=lowest_options'),
     
