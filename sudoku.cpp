@@ -125,20 +125,21 @@ int _solve(int index, vector<bits> b, vector<bits> r, vector<bits> c, vector<bit
 
     int try_val;
     while ( get_random_value(&possible_values,&try_val) ) {
-        vector<bits> try_b = b; vector<bits> try_r = r;
-        vector<bits> try_c = c; vector<bits> try_s = s;
         bits try_bits = DEC_TO_BIN[try_val];
-        try_b[index] = try_bits;         try_r[ ROW(index) ] |= try_bits;
-        try_c[ COL(index) ] |= try_bits; try_s[ SQR(index) ] |= try_bits;
-
-        int next_pos = next_position(try_b,try_r,try_c,try_s);
+        b[index] = try_bits;         r[ ROW(index) ] |= try_bits;
+        c[ COL(index) ] |= try_bits; s[ SQR(index) ] |= try_bits;
+        int next_pos = next_position(b,r,c,s);
         if ( next_pos == INT_MAX && filled_cells != to_be_filled ) {
             return filled_cells;
         }
-        int retval   = _solve(next_pos,try_b,try_r,try_c,try_s,filled_cells + 1, to_be_filled);
+        int retval   = _solve(next_pos,b,r,c,s,filled_cells + 1, to_be_filled);
 
         if ( retval == to_be_filled ){
             return retval;
+        } else {
+            b[index] = ZERO;             r[ ROW(index) ] ^= try_bits;
+            c[ COL(index) ] ^= try_bits; s[ SQR(index) ] ^= try_bits;
+
         }
     }
 
