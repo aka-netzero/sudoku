@@ -8,6 +8,8 @@
 using namespace std; 
 typedef unsigned short bits;
 
+#define DEBUG 0
+
 #define ZERO  1<<0
 #define ONE   1<<1
 #define TWO   1<<2
@@ -28,8 +30,8 @@ const bits DEC_TO_BIN[10] = { ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIG
 
 
 
-void get_possible_options( int index, vector<bits> r, vector<bits> c, vector<bits> s, vector<int> *opts ) {
-    bits options = ~( r[ROW(index)] | c[COL(index)] | s[SQR(index)]);
+void get_possible_options( int index, vector<bits> *r, vector<bits> *c, vector<bits> *s, vector<int> *opts ) {
+    bits options = ~( (*r)[ROW(index)] | (*c)[COL(index)] | (*s)[SQR(index)]);
 
     for ( int i = 1; i <= 9; i++ ) {
         if ( (options & DEC_TO_BIN[i]) == DEC_TO_BIN[i] ) {
@@ -38,13 +40,13 @@ void get_possible_options( int index, vector<bits> r, vector<bits> c, vector<bit
     }
 }
 
-int next_position ( vector<bits> b, vector<bits> r, vector<bits> c, vector<bits> s ) {
+int next_position ( vector<bits> *b, vector<bits> *r, vector<bits> *c, vector<bits> *s ) {
     vector<int> indexes_by_options[9];
     int lowest_count = INT_MAX;
     bool at_least_one_empty = false;
 
     for ( int i = 0; i < 81; i++ ) {
-        if ( b[i] == ZERO ) {
+        if ( (*b)[i] == ZERO ) {
             at_least_one_empty = true;
             vector<int> options;
             get_possible_options(i,r,c,s,&options);
@@ -109,7 +111,7 @@ bool get_random_value( vector<int> *array, int *value ) {
     return false;
 }
 
-int _solve(int index, vector<bits> b, vector<bits> r, vector<bits> c, vector<bits> s, int filled_cells, int to_be_filled) {
+int _solve(int index, vector<bits> *b, vector<bits> *r, vector<bits> *c, vector<bits> *s, int filled_cells, int to_be_filled) {
     if ( filled_cells == to_be_filled ) {
         return filled_cells;
     }
@@ -118,16 +120,17 @@ int _solve(int index, vector<bits> b, vector<bits> r, vector<bits> c, vector<bit
     get_possible_options(index, r, c, s, &possible_values);
 
     if ( possible_values.size() == 1 && (filled_cells + 1) == to_be_filled) {
-        vector<bits> new_b = b;
+        vector<bits> new_b = *b;
         new_b[index] = DEC_TO_BIN[ possible_values[0] ];
+        if ( DEBUG ) { print_board(new_b); }
         return to_be_filled;
     }
 
     int try_val;
     while ( get_random_value(&possible_values,&try_val) ) {
         bits try_bits = DEC_TO_BIN[try_val];
-        b[index] = try_bits;         r[ ROW(index) ] |= try_bits;
-        c[ COL(index) ] |= try_bits; s[ SQR(index) ] |= try_bits;
+        (*b)[index] = try_bits;         (*r)[ ROW(index) ] |= try_bits;
+        (*c)[ COL(index) ] |= try_bits; (*s)[ SQR(index) ] |= try_bits;
         int next_pos = next_position(b,r,c,s);
         if ( next_pos == -1 && filled_cells != to_be_filled ) {
             return filled_cells;
@@ -137,8 +140,8 @@ int _solve(int index, vector<bits> b, vector<bits> r, vector<bits> c, vector<bit
         if ( retval == to_be_filled ){
             return retval;
         } else {
-            b[index] = ZERO;             r[ ROW(index) ] ^= try_bits;
-            c[ COL(index) ] ^= try_bits; s[ SQR(index) ] ^= try_bits;
+            (*b)[index] = ZERO;             (*r)[ ROW(index) ] ^= try_bits;
+            (*c)[ COL(index) ] ^= try_bits; (*s)[ SQR(index) ] ^= try_bits;
 
         }
     }
@@ -146,7 +149,7 @@ int _solve(int index, vector<bits> b, vector<bits> r, vector<bits> c, vector<bit
     return 0;
 }
 
-bool solve(vector<bits> b, vector<bits> r, vector<bits> c, vector<bits> s, int missing_count) {
+bool solve(vector<bits> *b, vector<bits> *r, vector<bits> *c, vector<bits> *s, int missing_count) {
     int pos = next_position(b,r,c,s);
     int filled = _solve(pos,b,r,c,s,0,missing_count);
 
@@ -170,7 +173,7 @@ int main() {
 
         fill_structures(s,&board,&rows,&cols,&squares,&cells_needed_to_win);
 
-        bool solved = solve(board,rows,cols,squares,cells_needed_to_win);
+        bool solved = solve(&board,&rows,&cols,&squares,cells_needed_to_win);
         std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1);
