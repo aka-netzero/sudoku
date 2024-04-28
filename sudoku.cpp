@@ -175,7 +175,7 @@ int main() {
 
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1);
 
-        if ( (!fastest_run) || (time_span.count() < fastest_run) ) {
+        if ( solved && ( (!fastest_run) || (time_span.count() < fastest_run) ) ) {
             fastest_run = time_span.count();
             cout<< "New fastest solve: " << time_span.count() * 1000 << "ms.\n";
         }
