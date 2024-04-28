@@ -47,10 +47,10 @@ int next_position ( vector<bits> b, vector<bits> r, vector<bits> c, vector<bits>
         if ( b[i] == ZERO ) {
             at_least_one_empty = true;
             vector<int> options;
-            get_possible_options(b[i],r,c,s,&options);
+            get_possible_options(i,r,c,s,&options);
             if ( options.size() != 0 && options.size() < lowest_count ) {
                 lowest_count = options.size();
-                indexes_by_options[lowest_count-1].push_back(b[i]);
+                indexes_by_options[lowest_count-1].push_back(i);
             }
         }
     }
@@ -129,7 +129,7 @@ int _solve(int index, vector<bits> b, vector<bits> r, vector<bits> c, vector<bit
         b[index] = try_bits;         r[ ROW(index) ] |= try_bits;
         c[ COL(index) ] |= try_bits; s[ SQR(index) ] |= try_bits;
         int next_pos = next_position(b,r,c,s);
-        if ( next_pos == INT_MAX && filled_cells != to_be_filled ) {
+        if ( next_pos == -1 && filled_cells != to_be_filled ) {
             return filled_cells;
         }
         int retval   = _solve(next_pos,b,r,c,s,filled_cells + 1, to_be_filled);
